@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Emoji Planner</title>
+<style>
+html, body {
+  margin:0; padding:0;
+  width:100%; height:100%;
+  font-family:Arial,sans-serif;
+  background:#90caf9; /* midday blue */
+  overflow:hidden;
+  touch-action:none;
+}
+
+body {
+  display:flex; flex-direction:column;
+  height:100vh; width:100vw;
+}
+
+/* Clouds */
+.clouds {
+  position:absolute; top:0; left:0;
+  width:100%; height:100%;
+  pointer-events:none; z-index:-1;
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding:5vh 0;
+}
+.clouds-row {
+  width:300%; height:12vh; opacity:0.9;
+  background-repeat:repeat-x; background-position:top left; background-size:contain;
+  position:relative;
+}
+.clouds-row1 {
+  background-image:url('data:image/svg+xml;utf8,<svg width="100" height="50" xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="25" rx="30" ry="15" fill="%23ffffff"/><ellipse cx="70" cy="25" rx="30" ry="15" fill="%23ffffff"/></svg>');
+  animation:moveCloudsRow1 40s linear infinite; transform:scale(1.2);
+}
+.clouds-row2 {
+  background-image:url('data:image/svg+xml;utf8,<svg width="100" height="50" xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="25" rx="25" ry="10" fill="%23ffffff"/></svg>');
+  animation:moveCloudsRow2 45s linear infinite; opacity:0.8; transform:scale(1.1);
+}
+.clouds-row3 {
+  background-image:url('data:image/svg+xml;utf8,<svg width="100" height="50" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="25" rx="25" ry="12" fill="%23ffffff"/><ellipse cx="70" cy="25" rx="25" ry="12" fill="%23ffffff"/></svg>');
+  animation:moveCloudsRow3 50s linear infinite; transform:scale(1.15); opacity:0.85;
+}
+
+@keyframes moveCloudsRow1 {0%{transform:translateX(0)scale(1.2);}100%{transform:translateX(-15%)scale(1.2);}}
+@keyframes moveCloudsRow2 {0%{transform:translateX(0)scale(1.1);}100%{transform:translateX(15%)scale(1.1);}}
+@keyframes moveCloudsRow3 {0%{transform:translateX(0)scale(1.15);}100%{transform:translateX(-15%)scale(1.15);}}
+
+header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:1vh 2vw; position:relative; z-index:10;
+}
+h1 {
+  margin:0; font-size:3vh; color:#fff; font-weight:bold;
+}
+.time-display {
+  font-size:2vh; color:#fff;
+}
+
+/* reset alles button next to time display, transparent, same font as time, 6px space */
+.reset-alles-btn {
+  background:transparent; border:none; color:#fff; font-size:2vh;
+  font-weight:normal; margin-left:6px; cursor:pointer;
+}
+
+/* Day sections */
+.day-sections {
+  display:flex; flex-direction:column; padding:1vh 2vw;
+  background:rgba(255,255,255,0.3); gap:1vh; flex-shrink:0; z-index:10;
+}
+.section-block h2 {
+  margin:0; font-size:2.5vh; color:#fff; /* white now */
+}
+.placeholder-row {
+  display:flex; align-items:center; gap:2vw; margin-top:1vh;
+}
+.placeholder {
+  width:8vh; height:8vh; border:0.3vh dashed #89cfff; border-radius:1vh; background:#f5f5f5;
+  display:flex; align-items:center; justify-content:center; position:relative;
+  transition:border-color 0.2s,box-shadow 0.2s,transform 0.2s;
+}
+.placeholder.empty::after {
+  content:"?"; opacity:0.8; font-size:3vh; color:#89cfff;
+}
+.placeholder.highlight {
+  border-color:#2196f3; box-shadow:0 0 1vh #2196f3; transform:scale(1.05);
+}
+.add-btn {
+  width:8vh; height:8vh; border:none; background:#89cfff; border-radius:1vh; font-size:3vh; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; box-shadow:0 0 0.5vh #ccc; color:#fff;
+}
+.add-btn:hover,.add-btn:focus {background:#b3daff; outline:none;}
+
+/* Huiswerk Button */
+.huiswerk-btn {
+  display:inline-flex; align-items:center; justify-content:center; margin:0.5vh 2vw; padding:0.5vh 1vw;
+  border:none; border-radius:1vh; font-size:2.5vh; color:#fff; background:#f44336;
+  cursor:pointer; transition:background 0.3s; position:relative; z-index:10;
+}
+.huiswerk-btn.active {
+  background:#4caf50; animation:housewagBounce 0.7s ease-out 1;
+}
+@keyframes housewagBounce {
+  0%{transform:scale(1);}
+  30%{transform:scale(1.2) rotate(5deg);}
+  60%{transform:scale(1) rotate(-5deg);}
+  100%{transform:scale(1) rotate(0deg);}
+}
+
+/* Search input */
+.search-container {margin:0.5vh 2vw;flex-shrink:0;z-index:10;}
+.search-bar {
+  width:100%; padding:1vh; font-size:2vh; border-radius:1vh; border:1px solid #ccc; outline:none;
+}
+
+/* Category nav is hidden (not rendered) to save space */
+
+/* Emoji Deck */
+main {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,0.3); box-sizing:border-box; overflow:hidden; z-index:10;
+  padding:1vh 2vw 0.5vh 2vw;
+}
+.emoji-deck {
+  display:grid; grid-gap:0.5vh;
+  /* Layout determined dynamically by JS */
+}
+.emoji-item {
+  font-size:3vh; cursor:grab; user-select:none; display:flex; align-items:center; justify-content:center;
+  border-radius:0.5vh; border:2px solid #89cfff; /* baby blue outline */
+  background:transparent; /* no background, just outline */
+  transition:background 0.2s,transform 0.2s; touch-action:none;
+}
+.emoji-item:active {cursor:grabbing;}
+.emoji-item:hover,.emoji-item:focus {background:rgba(255,255,255,0.5); outline:none;}
+
+/* Arrows for categories placed in top row */
+.arrow-left, .arrow-right {
+  font-size:3vh; cursor:pointer; user-select:none; text-shadow:0 0 0.5vh rgba(0,0,0,0.5);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+}
+
+/* Dragging */
+.dragging {
+  position:fixed; z-index:9999; pointer-events:none;
+  background:none; border:none; /* only emoji char */
+}
+.dragging.magnet {transform:scale(1.2); transition:transform 0.1s;}
+
+/* Reward Popup & Confetti */
+.reward-popup {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
+  background:rgba(255,255,255,0.9); border-radius:2vh; padding:2vh 4vw;
+  box-shadow:0 0 1vh rgba(0,0,0,0.2); z-index:10000; text-align:center; pointer-events:none;
+  transition:transform 0.3s ease-out;
+}
+.reward-popup.show {transform:translate(-50%,-50%) scale(1);}
+.reward-content {
+  display:flex; flex-direction:column; align-items:center; gap:1vh;
+}
+.reward-text {
+  font-size:3vh; font-weight:bold; color:#4caf50;
+}
+.reward-emoji {font-size:4vh;}
+
+.confetti-container {
+  position:absolute; top:0; left:0; width:100%; height:100%;
+  pointer-events:none; z-index:9999; overflow:hidden; display:none;
+}
+.confetti {
+  position:absolute; width:0.5vh; height:0.5vh; border-radius:50%;
+  animation:fallConfetti 3s linear forwards;
+}
+@keyframes fallConfetti {
+  0%{transform:translateY(-10vh);}
+  100%{transform:translateY(110vh);}
+}
+
+/* Tutorial Popup */
+.tutorial-popup {
+  position:absolute; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.5); z-index:20000; display:none; align-items:center; justify-content:center; text-align:center; padding:5vw;
+}
+.tutorial-content {
+  background:#fff; border-radius:2vh; padding:2vh 3vw;
+  box-shadow:0 0 2vh rgba(0,0,0,0.3); color:#333; position:relative; animation:popIn 0.5s ease-out;
+}
+@keyframes popIn {
+  0%{transform:scale(0.5);opacity:0;}
+  100%{transform:scale(1);opacity:1;}
+}
+.tutorial-title {
+  font-size:3vh; font-weight:bold; margin-bottom:2vh; text-shadow:0 0 0.5vh rgba(0,0,0,0.3);
+}
+.tutorial-step {
+  font-size:2.2vh; margin:1vh 0; line-height:1.3;
+}
+.tutorial-close {
+  margin-top:2vh; font-size:2vh; padding:1vh 2vw; border:none; border-radius:1vh; background:#4caf50; color:#fff; cursor:pointer;
+}
+
+/* Tutorial Overlays */
+.tutorial-overlays {
+  position:absolute; top:0; left:0; width:100%; height:100%;
+  pointer-events:none; z-index:20001; display:none;
+}
+.ghost-overlay, .finger-overlay, .speech-bubble {
+  position:absolute; transition:all 1s cubic-bezier(0.25,0.1,0.25,1); opacity:0; font-size:3vh;
+  filter:drop-shadow(0 0 0.5vh rgba(0,0,0,0.5));
+}
+.ghost-overlay {font-size:4vh;}
+.ghost-overlay.floating {
+  animation:ghostFloat 2s ease-in-out infinite alternate;
+}
+@keyframes ghostFloat {
+  0%{transform:translateY(0)}
+  100%{transform:translateY(-1vh)}
+}
+.finger-overlay {font-size:4vh;}
+.speech-bubble {
+  background:#fff; color:#333; padding:1vh 2vw; border-radius:1vh; font-size:2vh; box-shadow:0 0 1vh rgba(0,0,0,0.2);
+}
+
+/* Focus styles */
+:focus {outline:2px solid #2196f3; outline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="clouds" aria-hidden="true">
+  <div class="clouds-row clouds-row1"></div>
+  <div class="clouds-row clouds-row2"></div>
+  <div class="clouds-row clouds-row3"></div>
+</div>
+
+<header>
+  <h1>Emoji Planner</h1>
+  <div style="display:flex; align-items:center;">
+    <div class="time-display" aria-label="Current time"></div>
+    <button class="reset-alles-btn" aria-label="Reset all placeholders">reset alles</button>
+  </div>
+</header>
+
+<section class="day-sections" aria-label="Day time sections">
+  <div class="section-block" aria-label="Ochtend section">
+    <h2>Ochtend</h2>
+    <div class="placeholder-row">
+      <div class="placeholder empty" aria-label="Empty placeholder" tabindex="0"></div>
+      <button class="add-btn" aria-label="Add new placeholder">+</button>
+    </div>
+  </div>
+  <div class="section-block" aria-label="Middag section">
+    <h2>Middag</h2>
+    <div class="placeholder-row">
+      <div class="placeholder empty" aria-label="Empty placeholder" tabindex="0"></div>
+      <button class="add-btn" aria-label="Add new placeholder">+</button>
+    </div>
+  </div>
+  <div class="section-block" aria-label="Avond section">
+    <h2>Avond</h2>
+    <div class="placeholder-row">
+      <div class="placeholder empty" aria-label="Empty placeholder" tabindex="0"></div>
+      <button class="add-btn" aria-label="Add new placeholder">+</button>
+    </div>
+  </div>
+</section>
+
+<button class="huiswerk-btn" aria-label="Toggle huiswerk mode">Huiswerk</button>
+
+<div class="search-container" aria-label="Search and filter emojis">
+  <input type="text" class="search-bar" placeholder="Search emojis..." aria-label="Search emojis by name"/>
+</div>
+
+<main aria-label="Emoji deck">
+  <div class="emoji-deck" aria-live="polite"></div>
+</main>
+
+<div class="reward-popup">
+  <div class="reward-content">
+    <div class="reward-text">Goed Gedaan!</div>
+    <div class="reward-emoji">🎂</div>
+  </div>
+</div>
+
+<div class="confetti-container"></div>
+
+<div class="tutorial-popup">
+  <div class="tutorial-content">
+    <h2 class="tutorial-title">Welcome to Emoji Planner!</h2>
+    <p class="tutorial-step">👻 Deze geest laat zien hoe je emojis kunt slepen en plaatsen!</p>
+    <p class="tutorial-step">👉 Deze vinger laat zien hoe je dubbel tikt om te verwijderen!</p>
+    <p class="tutorial-step">💡 Leer hoe je "reset alles" gebruikt om je plan te legen!</p>
+    <p class="tutorial-step">Volg de pijlen en animaties om alle functies te begrijpen.</p>
+    <button class="tutorial-close" aria-label="Close tutorial">Got it!</button>
+  </div>
+</div>
+
+<div class="tutorial-overlays">
+  <div class="ghost-overlay">👻</div>
+  <div class="finger-overlay">👉</div>
+  <div class="speech-bubble">druk op deze knop als je alle emojis in een keer wilt verwijderen</div>
+</div>
+
+<script>
+// Categories
+const categories=["events","emotion","travel","art","tech","objects","animals","houses"];
+let currentCategoryIndex=0; // start with events
+
+// Emojis & Dutch Names
+// Example sets with Dutch keywords:
+const EVENTS_EMOJIS=[
+  {char:"🎉",name:"party feest"}, {char:"🎂",name:"taart"}, {char:"🎆",name:"vuurwerk"}, {char:"🎇",name:"sterretje"}, {char:"🎈",name:"ballon"},
+  {char:"🎊",name:"confetti"}, {char:"🥳",name:"feestgezicht"}, {char:"🎃",name:"pompoen"}, {char:"🎄",name:"kerstboom"}, {char:"🎅",name:"kerstman"}
+];
+
+// Fill other categories similarly with Dutch names:
+const EMOTION_EMOJIS=[
+  {char:"😀",name:"glimlach"}, {char:"😃",name:"lach"}, {char:"😄",name:"breed lach"}, {char:"😁",name:"big grin"},
+  {char:"😂",name:"tranen van het lachen"}, {char:"🤣",name:"rol lachen"}, {char:"😊",name:"verlegen lach"}, {char:"🥰",name:"liefdevol"},
+  {char:"😍",name:"verliefd"}, {char:"🤩",name:"onder de indruk"}
+];
+const TRAVEL_EMOJIS=[
+  {char:"✈️",name:"vliegtuig"}, {char:"🚂",name:"stoomtrein"}, {char:"🚆",name:"trein"}, {char:"🚗",name:"auto"}, {char:"🚙",name:"auto2"}, {char:"🚌",name:"bus"}
+];
+const ART_EMOJIS=[
+  {char:"🎨",name:"verf palet"}, {char:"🖌️",name:"kwast"}, {char:"🖍️",name:"krijt"}, {char:"🎸",name:"gitaar"},
+  {char:"🎻",name:"viool"}, {char:"🥁",name:"drum"}, {char:"🎹",name:"piano"}
+];
+const TECH_EMOJIS=[
+  {char:"💻",name:"laptop"}, {char:"📱",name:"telefoon"}, {char:"📷",name:"camera"}, {char:"🎥",name:"video camera"}, {char:"⌨️",name:"toetsenbord"}
+];
+const OBJECTS_EMOJIS=[
+  {char:"📦",name:"doos"}, {char:"🎁",name:"cadeau"}, {char:"🛍️",name:"winkel tas"}, {char:"🎀",name:"strik"},
+  {char:"📚",name:"boeken"}, {char:"💼",name:"koffer"}
+];
+const ANIMALS_EMOJIS=[
+  {char:"🐶",name:"hond"}, {char:"🐱",name:"kat"}, {char:"🐭",name:"muis"}, {char:"🐹",name:"hamster"},
+  {char:"🐰",name:"konijn"}, {char:"🦊",name:"vos"}
+];
+const HOUSES_EMOJIS=[
+  {char:"🏠",name:"huis"}, {char:"🏡",name:"huis met tuin"}, {char:"🏘️",name:"huizenblok"}, {char:"🏯",name:"kasteel oosters"}, {char:"🏰",name:"kasteel"}
+];
+
+// Duplicate to reach ~600 total by repeating sets:
+function triple(array){return array.concat(array,array);}
+let EMOJIS = {
+  events: triple(EVENTS_EMOJIS),
+  emotion: triple(EMOTION_EMOJIS),
+  travel: triple(TRAVEL_EMOJIS),
+  art: triple(ART_EMOJIS),
+  tech: triple(TECH_EMOJIS),
+  objects: triple(OBJECTS_EMOJIS),
+  animals: triple(ANIMALS_EMOJIS),
+  houses: triple(HOUSES_EMOJIS)
+};
+// Trim to exactly 600 if over:
+Object.keys(EMOJIS).forEach(cat=>{
+  EMOJIS[cat]=EMOJIS[cat].slice(0,75); // ~75 per category *8=600
+});
+
+const deck=document.querySelector('.emoji-deck');
+const huiswerkBtn=document.querySelector('.huiswerk-btn');
+const searchInput=document.querySelector('.search-bar');
+const addButtons=document.querySelectorAll('.add-btn');
+const timeDisplay=document.querySelector('.time-display');
+const rewardPopup=document.querySelector('.reward-popup');
+const resetAllesBtn=document.querySelector('.reset-alles-btn');
+const tutorialPopup=document.querySelector('.tutorial-popup');
+const tutorialCloseBtn=tutorialPopup.querySelector('.tutorial-close');
+const tutorialOverlays=document.querySelector('.tutorial-overlays');
+const ghostOverlay=document.querySelector('.ghost-overlay');
+const fingerOverlay=document.querySelector('.finger-overlay');
+const speechBubble=document.querySelector('.speech-bubble');
+const confettiContainer=document.querySelector('.confetti-container');
+
+let draggedEmoji=null;
+let dragSourcePlaceholder=null;
+let lastTapTime=0; const doubleTapThreshold=300;
+
+let tutorialShown=localStorage.getItem('tutorialShown');
+document.addEventListener('DOMContentLoaded',()=>{
+  if(!tutorialShown){
+    tutorialPopup.style.display='flex';
+  }else{
+    tutorialPopup.style.display='none';
+  }
+});
+
+tutorialCloseBtn.addEventListener('click',()=>{
+  tutorialPopup.style.display='none';
+  localStorage.setItem('tutorialShown','true');
+  startTutorialScenes();
+});
+
+// Start tutorial scenes with smoother, premium animations
+function startTutorialScenes(){
+  tutorialOverlays.style.display='block';
+  ghostOverlay.classList.add('floating');
+  const currentCat=categories[currentCategoryIndex];
+  const firstPlaceholder=document.querySelector('.section-block[aria-label="Ochtend section"] .placeholder');
+  const resetBtn=resetAllesBtn;
+  const partyEmoji="🎉";
+  ghostOverlay.style.opacity='1'; ghostOverlay.style.left='10vw'; ghostOverlay.style.top='70vh';
+  fingerOverlay.style.opacity='0'; speechBubble.style.opacity='0';
+
+  // Move ghost near deck
+  setTimeout(()=>{
+    ghostOverlay.style.left='10vw'; ghostOverlay.style.top='50vh';
+  },1200);
+
+  // Move ghost to Ochtend placeholder
+  setTimeout(()=>{
+    const rect=firstPlaceholder.getBoundingClientRect();
+    ghostOverlay.style.left=rect.left+'px'; ghostOverlay.style.top=rect.top+'px';
+  },2400);
+
+  // Place emoji
+  setTimeout(()=>{
+    placeEmojiInPlaceholder(firstPlaceholder,partyEmoji);
+    // celebration (but no confetti needed here if not stated)
+  },3600);
+
+  // Double-tap deletion scene
+  setTimeout(()=>{
+    const rect=firstPlaceholder.getBoundingClientRect();
+    fingerOverlay.style.opacity='1';
+    fingerOverlay.style.left=(rect.left+rect.width/2)+'px';
+    fingerOverlay.style.top=(rect.top+rect.height/2)+'px';
+    setTimeout(()=>{clearPlaceholder(firstPlaceholder);},1500);
+    setTimeout(()=>{fingerOverlay.style.opacity='0';},2500);
+  },4800);
+
+  // Move ghost to reset button and show speech bubble
+  setTimeout(()=>{
+    const resetRect=resetBtn.getBoundingClientRect();
+    ghostOverlay.style.left=(resetRect.left)+'px';
+    ghostOverlay.style.top=(resetRect.top+50)+'px';
+  },8000);
+
+  setTimeout(()=>{
+    const resetRect=resetBtn.getBoundingClientRect();
+    speechBubble.style.opacity='1';
+    speechBubble.style.left=(resetRect.left)+'px';
+    speechBubble.style.top=(resetRect.bottom+10)+'px';
+  },9200);
+
+  setTimeout(()=>{
+    speechBubble.style.opacity='0';
+    ghostOverlay.style.opacity='0';
+    ghostOverlay.classList.remove('floating');
+    tutorialOverlays.style.display='none';
+  },12000);
+}
+
+// Confetti function
+function triggerConfetti(){
+  // Used only for main celebrations like Huiswerk success
+  confettiContainer.innerHTML='';
+  confettiContainer.style.display='block';
+  for(let i=0;i<50;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.style.left=Math.random()*100+'%';
+    c.style.background=`hsl(${Math.random()*360},100%,50%)`;
+    c.style.animationDelay=Math.random()+'s';
+    confettiContainer.appendChild(c);
+  }
+  setTimeout(()=>{
+    confettiContainer.style.display='none';
+    confettiContainer.innerHTML='';
+  },4000);
+}
+
+// Category navigation via arrows in top row
+// Actually we have no category nav visible. We'll rely on left/right arrows in top row of emojis.
+function prevCategory(){
+  currentCategoryIndex=(currentCategoryIndex-1+categories.length)%categories.length;
+  filterEmojis();
+}
+function nextCategory(){
+  currentCategoryIndex=(currentCategoryIndex+1)%categories.length;
+  filterEmojis();
+}
+
+// We will dynamically layout emojis. Top row: [left arrow][4 emojis][right arrow], subsequent rows: 6 emojis each.
+let filteredEmojis=[];
+
+function filterEmojis(){
+  const searchTerm=searchInput.value.toLowerCase();
+  const cat=categories[currentCategoryIndex];
+  let arr=EMOJIS[cat];
+
+  // Filter by search name:
+  // Check if emoji name contains searchTerm
+  // name field may have multiple keywords
+  arr=arr.filter(e=>e.name.toLowerCase().includes(searchTerm));
+
+  filteredEmojis=arr;
+  displayEmojis();
+}
+
+function displayEmojis(){
+  deck.innerHTML='';
+  const arr=filteredEmojis;
+  const total=arr.length;
+
+  // Layout:
+  // If no emojis, just show arrows?
+  // top row: always: left arrow slot, 4 emoji slots (if available), right arrow slot = 6 slots total
+  // If total <=4: all emojis fit in top row between arrows
+  // If total>4: top row has 4 emojis + arrows, remainder in rows of 6
+  const topRowCount=Math.min(4,total);
+  const remainder=total>4?(total-4):0;
+  const rowsBelow=remainder>0?Math.ceil(remainder/6):0;
+  const totalRows=1+rowsBelow;
+
+  // Determine emoji size by viewport and totalRows:
+  const viewportW=window.innerWidth;
+  const viewportH=window.innerHeight;
+  // We have totalRows of height, each row has up to 6 slots.
+  // We'll assume some padding. Let's guess emoji size by trial:
+  // We'll try decreasing size until fits:
+  // Each row: 6 slots for uniformity. Top row also 6 slots total (including arrows).
+  
+  let emojiSizeGuess=viewportW/10; // start guess
+  for(let size=viewportW/5; size>1; size--){
+    // Check if totalRows*size*1.5 < viewportH (some margin)
+    // and 6*size*1.5 < viewportW
+    // 1.5 factor for padding and spacing
+    if(totalRows*(size*1.5)<viewportH && 6*(size*1.5)<viewportW){
+      emojiSizeGuess=size;
+      break;
+    }
+  }
+
+  const emojiSize=emojiSizeGuess;
+  deck.style.gridTemplateColumns='repeat(6,auto)';
+
+  // Insert top row:
+  // slot1: left arrow
+  const leftArrow=document.createElement('div');
+  leftArrow.className='arrow-left emoji-item';
+  leftArrow.textContent='◀️';
+  leftArrow.addEventListener('click',prevCategory);
+  deck.appendChild(leftArrow);
+
+  for(let i=0;i<4;i++){
+    if(i<topRowCount){
+      const e=arr[i];
+      const span=document.createElement('span');
+      span.classList.add('emoji-item');
+      span.textContent=e.char;
+      span.setAttribute('aria-label',e.name);
+      span.setAttribute('tabindex','0');
+      span.addEventListener('touchstart',onTouchStartFromDeck);
+      deck.appendChild(span);
+    } else {
+      // Empty slot if fewer than 4 emojis
+      const emptyDiv=document.createElement('div');
+      emptyDiv.style.visibility='hidden';
+      deck.appendChild(emptyDiv);
+    }
+  }
+
+  // slot6: right arrow
+  const rightArrow=document.createElement('div');
+  rightArrow.className='arrow-right emoji-item';
+  rightArrow.textContent='▶️';
+  rightArrow.addEventListener('click',nextCategory);
+  deck.appendChild(rightArrow);
+
+  // Insert remainder rows if any
+  let index=4; 
+  for(let r=0;r<rowsBelow;r++){
+    for(let c=0;c<6;c++){
+      if(index<total){
+        const e=arr[index++];
+        const span=document.createElement('span');
+        span.classList.add('emoji-item');
+        span.textContent=e.char;
+        span.setAttribute('aria-label',e.name);
+        span.setAttribute('tabindex','0');
+        span.addEventListener('touchstart',onTouchStartFromDeck);
+        deck.appendChild(span);
+      } else {
+        const emptyDiv=document.createElement('div');
+        emptyDiv.style.visibility='hidden';
+        deck.appendChild(emptyDiv);
+      }
+    }
+  }
+
+  // Scale emojis:
+  // Set emoji-item size
+  const allEmojis=deck.querySelectorAll('.emoji-item');
+  allEmojis.forEach(e=>{
+    e.style.width=emojiSize+'px';
+    e.style.height=emojiSize+'px';
+    e.style.fontSize=(emojiSize*0.5)+'px';
+  });
+}
+
+function onTouchStartFromDeck(e){startDragging(e,false);}
+function onTouchStartFromPlaceholder(e){
+  const placeholder=e.target.closest('.placeholder');
+  if(!placeholder || placeholder.classList.contains('empty'))return;
+  const currentTime=Date.now();
+  if(currentTime-lastTapTime<doubleTapThreshold){
+    // Double-tap delete
+    clearPlaceholder(placeholder);
+    // No confetti on deletion as per instructions
+    lastTapTime=0;return;
+  }
+  lastTapTime=currentTime;
+  dragSourcePlaceholder=placeholder;
+  startDragging(e,true,placeholder);
+}
+
+function startDragging(e,fromPlaceholder){
+  const target=e.target;
+  if(!target.classList.contains('emoji-item'))return;
+  if(navigator.vibrate)navigator.vibrate(10);
+  draggedEmoji=target.cloneNode(true);
+  draggedEmoji.classList.add('dragging');
+  draggedEmoji.style.border='none';
+  document.body.appendChild(draggedEmoji);
+  const initialTouch=e.touches[0];
+  const moveAt=(x,y)=>{
+    draggedEmoji.style.left=(x-draggedEmoji.offsetWidth/2)+'px';
+    draggedEmoji.style.top=(y-draggedEmoji.offsetHeight/2)+'px';
+  };
+  moveAt(initialTouch.pageX,initialTouch.pageY);
+
+  const touchMoveHandler=ev=>{
+    const t=ev.touches[0];
+    moveAt(t.pageX,t.pageY);
+    checkMagnetEffect(t);
+  };
+  const touchEndHandler=ev=>{
+    dropEmoji(ev,fromPlaceholder);
+    draggedEmoji.remove(); draggedEmoji=null; dragSourcePlaceholder=null;
+    document.removeEventListener('touchmove',touchMoveHandler);
+    document.removeEventListener('touchend',touchEndHandler);
+  };
+
+  document.addEventListener('touchmove',touchMoveHandler,{passive:false});
+  document.addEventListener('touchend',touchEndHandler,{passive:false});
+}
+
+function getPlaceholders(){return document.querySelectorAll('.placeholder');}
+function checkMagnetEffect(touch){
+  let magnetDetected=false;
+  const placeholders=getPlaceholders();
+  placeholders.forEach(placeholder=>{
+    const rect=placeholder.getBoundingClientRect();
+    const distance=Math.hypot(touch.clientX-(rect.left+rect.width/2), touch.clientY-(rect.top+rect.height/2));
+    if(distance<80){placeholder.classList.add('highlight'); draggedEmoji.classList.add('magnet'); magnetDetected=true;}
+    else{placeholder.classList.remove('highlight');}
+  });
+  if(!magnetDetected) draggedEmoji.classList.remove('magnet');
+}
+
+function dropEmoji(event,fromPlaceholder){
+  if(navigator.vibrate)navigator.vibrate(20);
+  const touch=event.changedTouches[0];
+  const placeholders=getPlaceholders();
+  let chosenPlaceholder=null; let minDistance=Infinity;
+  placeholders.forEach(ph=>{
+    const rect=ph.getBoundingClientRect();
+    const distance=Math.hypot(touch.clientX-(rect.left+rect.width/2), touch.clientY-(rect.top+rect.height/2));
+    if(distance<80 && distance<minDistance){minDistance=distance;chosenPlaceholder=ph;}
+    ph.classList.remove('highlight');
+  });
+  if(chosenPlaceholder){
+    if(fromPlaceholder && dragSourcePlaceholder)clearPlaceholder(dragSourcePlaceholder);
+    placeEmojiInPlaceholder(chosenPlaceholder,draggedEmoji.textContent);
+  }else if(fromPlaceholder && dragSourcePlaceholder){
+    placeEmojiInPlaceholder(dragSourcePlaceholder,draggedEmoji.textContent);
+  }
+}
+
+function clearPlaceholder(placeholder){
+  placeholder.innerText='';
+  placeholder.classList.add('empty');
+  placeholder.setAttribute('aria-label','Empty placeholder');
+}
+
+function placeEmojiInPlaceholder(placeholder,emojiChar){
+  placeholder.innerHTML='';
+  placeholder.classList.remove('empty');
+  placeholder.setAttribute('aria-label','Contains emoji '+emojiChar);
+  const span=document.createElement('span');
+  span.classList.add('emoji-item');
+  span.textContent=emojiChar;
+  span.setAttribute('aria-label',emojiChar);
+  span.setAttribute('tabindex','0');
+  span.addEventListener('touchstart',onTouchStartFromPlaceholder);
+  placeholder.appendChild(span);
+}
+
+// Huiswerk Button
+huiswerkBtn.addEventListener('click',()=>{
+  huiswerkBtn.classList.toggle('active');
+  if(huiswerkBtn.classList.contains('active')){
+    huiswerkBtn.textContent='Huiswerk 👍';
+    showHuiswerkAlert();
+  } else {
+    huiswerkBtn.textContent='Huiswerk';
+  }
+});
+
+function showHuiswerkAlert(){
+  showRewardPopup();
+  triggerConfetti(); // confetti for Huiswerk success only
+  setTimeout(()=>{rewardPopup.classList.remove('show');},2000);
+}
+
+function showRewardPopup(){
+  rewardPopup.classList.add('show');
+}
+
+// Reset Alles
+resetAllesBtn.addEventListener('click',()=>{
+  getPlaceholders().forEach(ph=>clearPlaceholder(ph));
+  // No confetti on reset requested, only on Huiswerk success, so no confetti here.
+});
+
+// Add New Placeholder
+addButtons.forEach(addBtn=>{
+  addBtn.addEventListener('click',()=>{
+    addPlaceholderRow(addBtn);
+  });
+});
+function addPlaceholderRow(btn){
+  const row=btn.parentElement;
+  const newPlaceholder=document.createElement('div');
+  newPlaceholder.classList.add('placeholder','empty');
+  newPlaceholder.setAttribute('aria-label','Empty placeholder');
+  newPlaceholder.setAttribute('tabindex','0');
+  row.insertBefore(newPlaceholder,btn);
+}
+
+// Time Display
+function updateTime(){
+  const now=new Date();
+  timeDisplay.textContent=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateTime,1000);
+updateTime();
+
+// Initial
+currentCategoryIndex=0; // Events category start
+searchInput.addEventListener('input',filterEmojis);
+filterEmojis(); // show initial events category
+</script>
+</body>
+</html>
